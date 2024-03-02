@@ -1,0 +1,8 @@
+//
+// Created by notnuff on 02.03.24.
+//
+
+#ifndef NUFF_MDVERTER_INPUTINTERFACE_H
+#define NUFF_MDVERTER_INPUTINTERFACE_H
+
+#endif //NUFF_MDVERTER_INPUTINTERFACE_H
