@@ -14,7 +14,7 @@ private:
 
 public:
     void open(const std::string &somePathOrConsole) override;
-    void write (const std::string &stringToWrite) override;
+    void write(const std::string &stringToWrite) override;
     ~StandardTerminalOutput() override;
 };
 

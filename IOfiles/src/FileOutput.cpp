@@ -1,5 +1,5 @@
 #include <iostream>
-#include "FileOutput.h"
+#include "IOfiles/FileOutput.h"
 
 void FileOutput::open(const std::string &filePath) {
     _outputFile.open(filePath);

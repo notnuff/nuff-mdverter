@@ -8,9 +8,9 @@ include_directories(.)
 add_executable(nuff-mdverter
         main.cpp
         CommandsParser.cpp
-        OutputInterface.h
-        FileOutput.h
-        FileOutput.cpp
+        IOfiles/OutputInterface.h
+        IOfiles/FileOutput.h
+        IOfiles/src/FileOutput.cpp
         InputInterface.h
-        StandardTerminalOutput.h
-        StandardTerminalOutput.cpp)
+        IOfiles/StandardTerminalOutput.h
+        IOfiles/src/StandardTerminalOutput.cpp)
