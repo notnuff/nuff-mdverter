@@ -11,6 +11,6 @@ add_executable(nuff-mdverter
         IOfiles/OutputInterface.h
         IOfiles/FileOutput.h
         IOfiles/src/FileOutput.cpp
-        InputInterface.h
+        IOfiles/InputInterface.h
         IOfiles/StandardTerminalOutput.h
         IOfiles/src/StandardTerminalOutput.cpp)

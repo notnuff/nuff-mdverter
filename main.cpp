@@ -38,7 +38,7 @@ void checkBold(const std::string::iterator& it,
     auto replace_begin = it;
     auto replace_end = local_it;
     tagsStack.push_back({replace_begin, replace_end});
-//
+
 //    auto pre_replace = replace_begin;
 //    auto post_replace = replace_end;
 //
@@ -116,8 +116,8 @@ int main (int argc, char *argv[]) {
 
     std::string line;
     while(getline(inputBuffer, line)){
-        static std::regex re(R"((?!.*`.*|.*<code>.*)\*\*(?!.*`.*|.*<\/code>.*)([^\*]*)\*\*(?!.*`.*|.*<\/code>.*))");
-        static std::string replacement = "<b>$1</b>";
+        static std::regex re(R"(_\S(.*?)\S_)");
+        static std::string replacement = "<i>$1</i>";
 
         line = std::regex_replace(line, re, replacement);
         output->write(line);
