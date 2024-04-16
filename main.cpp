@@ -9,102 +9,183 @@
 #include "IOfiles/FileOutput.h"
 #include "IOfiles/StandardTerminalOutput.h"
 
+struct Token {
+    int _beginI;
+    int _length;
+//    std::string token;
+    std::string replacement;
 
+    Token(int begin, int length) : _beginI(begin), _length(length) {};
 
-class TagEntry{
-public:
-    std::string::iterator beginOfTag;
-    std::string::iterator endOfTag;
+    Token() : Token(-1, 0) {};
+
+    virtual std::string Replacement() { return replacement; };
+
+    virtual void Replacement(std::string re) {};
+
+    //virtual std::string GetReplacementLeft();
+    //virtual std::string GetReplacementRight();
+    //virtual ~Token()=default;
+};
+
+struct TokenRegex : Token {
+    virtual std::regex GetRegex() = 0;
+};
+
+struct TokenBold : TokenRegex {
+
+    const std::regex re{R"(\*\*)"};
+
+    std::regex GetRegex() override {
+        return re;
+    };
+
+//    std::string GetReplacementLeft() override {
+//        return repLeft;
+//    };
+//    std::string GetReplacementRight() override {
+//        return repRight;
+//    };
+private:
+    std::string repLeft = "<b>";
+    std::string repRight = "</b>";
+};
+
+struct TokenItalic : TokenRegex {
+
+    const std::regex re{R"(\_)"};
+
+    std::regex GetRegex() override {
+        return re;
+    };
+};
+
+struct TokenMonospaced : TokenRegex {
+
+    const std::regex re{R"(\`)"};
+
+    std::regex GetRegex() override {
+        return re;
+    };
+};
+
+struct TokenSpace : TokenRegex {
+
+    const std::regex re{R"(\s)"};
+
+    std::regex GetRegex() override {
+        return re;
+    };
+};
+
+struct TokenString : Token {
+
+    explicit TokenString(const std::string &line) : Token(0, int(line.size())) {
+        replacement = line;
+    }
+
+};
+
+static const std::vector<TokenRegex *> tokensPatterns{
+        new TokenBold(),
+        new TokenItalic(),
+        new TokenMonospaced(),
+        new TokenSpace()
+        //std::regex (R"(\```)")
 };
 
 
-void checkBold(const std::string::iterator& it,
-               const std::string& str,
-               std::vector<TagEntry>& tagsStack){
+void tokenizer(const std::string &line,
+               const std::regex &searchPattern,
+               std::vector<std::unique_ptr<Token>> &tokens) {
 
-    if (str.length() < 5) return;
+    std::string str(line);
 
-    std::string checkStr{"**"};
-    std::vector<char> restrictedSymbols{' ', '*'};
+    std::sregex_iterator iterator(str.begin(), str.end(), searchPattern);
+    std::sregex_iterator endIterator;
 
-    auto local_it = it;
-
-    for(auto checkChar : checkStr) {
-        if (*local_it != checkChar) return;
-        if (local_it == str.end()) return;
-        local_it++;
+    while (iterator != endIterator) {
+        std::smatch match = *iterator;
+        auto token = std::make_unique<Token>(match.position(), match.length());
+        tokens.emplace_back(std::move(token));
+        ++iterator;
     }
-
-    auto replace_begin = it;
-    auto replace_end = local_it;
-    tagsStack.push_back({replace_begin, replace_end});
-
-//    auto pre_replace = replace_begin;
-//    auto post_replace = replace_end;
-//
-//    pre_replace--;
-//    post_replace++;
-
-//    if (replace_begin == str.begin()) {
-//        for (auto restSym : restrictedSymbols){
-//            if (*post_replace == restSym) return;
-//        }
-//        tagsStack.push_back({true, false, replace_begin, replace_end});
-//        return;
-//    }
-//
-//    if (replace_end == str.end()) {
-//        for (auto restSym : restrictedSymbols){
-//            if (*pre_replace == restSym) return;
-//        }
-//        tagsStack.push_back({false, true, replace_begin, replace_end});
-//        return;
-//    }
-//
-//    if (*pre_replace == ' ') {
-//        for (auto restSym : restrictedSymbols){
-//            if (*post_replace == restSym) return;
-//        }
-//        tagsStack.push_back({true, replace_begin, replace_end});
-//    }
-//
-//    if (*post_replace == ' ') {
-//        for (auto restSym : restrictedSymbols){
-//            if (*pre_replace == restSym) return;
-//        }
-//        tagsStack.push_back({false, replace_begin, replace_end});
-//    }
 }
 
-int main (int argc, char *argv[]) {
+void concatenator(const std::string &line,
+                  std::vector<std::unique_ptr<Token>> &tokens,
+                  std::vector<std::unique_ptr<Token>> &parsedTokens) {
+    // Sort tokens based on the beginning iterator
+    if (tokens.empty()) {
+        std::unique_ptr<Token> lineToken = std::make_unique<TokenString>(line);
+        parsedTokens.emplace_back(std::move(lineToken));
+        return;
+    }
+
+    std::sort(tokens.begin(), tokens.end(), [](const std::unique_ptr<Token> &a, const std::unique_ptr<Token> &b) {
+        return a->_beginI < b->_beginI;
+    });
+
+    std::unique_ptr<Token> endOfLineToken = std::make_unique<Token>(line.length() - 1, 0);
+    tokens.emplace_back(std::move(endOfLineToken));
+
+    for (int i = 0, nextI = 0; i < tokens.size(); i++) {
+        if (tokens[i]->_length == 0) continue;
+
+        auto currentI = nextI;
+        nextI = tokens[i]->_beginI;
+
+        auto substr = line.substr(currentI, nextI - currentI);
+
+        //std::cout << '-' << substr << '-' << std::endl;
+
+        if (!substr.empty()) parsedTokens.emplace_back(std::make_unique<TokenString>(substr));
+
+        currentI = nextI;
+        nextI += tokens[i]->_length;
+
+        substr = line.substr(currentI, tokens[i]->_length);
+        //std::cout << '-' << substr << '-' << std::endl;
+
+        if (!substr.empty()) parsedTokens.emplace_back(std::make_unique<TokenString>(substr));
+    }
+}
+
+void replacer(const std::string &line,
+              std::vector<std::unique_ptr<Token>> &concatenatedStrings,
+              std::vector<std::string> &parsedTokens) {
+
+}
+
+int main(int argc, char *argv[]) {
+
+
     CommandsParser cli;
     std::unique_ptr<OutputInterface> output;
     try {
         cli.parseCLI(argc, argv);
-    }
-    catch (const std::exception &err){
+    } catch (const std::exception &err) {
         std::cerr << err.what() << std::endl;
         std::cerr << "usage: nuff-mdverter <input> [--out|-o] <output> ...\n";
         return EXIT_FAILURE;
     }
 
     std::ifstream inputFile(cli.getInPath());
-    if(inputFile.bad()) {
+    if (inputFile.bad()) {
         std::cerr << "Input error: input file does not exists";
         return EXIT_FAILURE;
     }
 
     if (cli.isOutFlag()) {
         output = std::make_unique<FileOutput>();
-        try{
+        try {
             output->open(cli.getOutPath());
         } catch (std::exception &err) {
             std::cerr << "Output file error: ";
             std::cerr << &err;
             return EXIT_FAILURE;
         }
-    }
-    else {
+    } else {
         output = std::make_unique<StandardTerminalOutput>();
     }
 
@@ -115,12 +196,23 @@ int main (int argc, char *argv[]) {
     inputFile.close();
 
     std::string line;
-    while(getline(inputBuffer, line)){
-        static std::regex re(R"(_\S(.*?)\S_)");
-        static std::string replacement = "<i>$1</i>";
+    while (getline(inputBuffer, line)) {
 
-        line = std::regex_replace(line, re, replacement);
-        output->write(line);
+        std::vector<std::unique_ptr<Token>> tokens;
+
+
+        for (const auto &t: tokensPatterns)
+            tokenizer(line, t->GetRegex(), tokens);
+
+        std::vector<std::unique_ptr<Token>> concatenatedStrings;
+        concatenator(line, tokens, concatenatedStrings);
+
+        for (const auto &t: concatenatedStrings) {
+            auto re = t->Replacement() == "\n" ? "n" : t->Replacement();
+            std::cout << re << "\n";
+        }
     }
 }
+
+
 
