@@ -12,14 +12,19 @@
 struct Token {
     int _beginI;
     int _length;
-//    std::string token;
-    std::string replacement;
+    //std::string token;
+    std::string tockenString;
 
     Token(int begin, int length) : _beginI(begin), _length(length) {};
 
     Token() : Token(-1, 0) {};
 
-    virtual std::string Replacement() { return replacement; };
+
+    virtual std::string GetString() { return tockenString; };
+
+    virtual bool IsHasClosing(){return false;};
+
+    virtual bool IsSameType(Token*){return false;};
 
     virtual void Replacement(std::string re) {};
 
@@ -34,11 +39,21 @@ struct TokenRegex : Token {
 
 struct TokenBold : TokenRegex {
 
+    bool IsSameType(Token* tokenToCheck) override{
+        if ( dynamic_cast<TokenBold*>(tokenToCheck) ) return true;
+        return false;
+    };
+
+    bool IsHasClosing() override{
+        return true;
+    };
+
     const std::regex re{R"(\*\*)"};
 
     std::regex GetRegex() override {
         return re;
     };
+
 
 //    std::string GetReplacementLeft() override {
 //        return repLeft;
@@ -81,7 +96,7 @@ struct TokenSpace : TokenRegex {
 struct TokenString : Token {
 
     explicit TokenString(const std::string &line) : Token(0, int(line.size())) {
-        replacement = line;
+        tockenString = line;
     }
 
 };
@@ -151,10 +166,35 @@ void concatenator(const std::string &line,
     }
 }
 
-void replacer(const std::string &line,
-              std::vector<std::unique_ptr<Token>> &concatenatedStrings,
-              std::vector<std::string> &parsedTokens) {
+int findNextSameElement(const std::vector<std::unique_ptr<Token>> &parsedTokens,
+                        int tokenI){
+    for(auto i = tokenI; i < (int)parsedTokens.size(); i++) {
+        if( parsedTokens[tokenI]->IsSameType( parsedTokens[tokenI].get() ) ) return i;
+    }
+    return tokenI;
+}
 
+int findEnclosingForElement(const std::vector<std::unique_ptr<Token>> &parsedTokens,
+                            int thisI) {
+
+    int closingI = thisI;
+    while (closingI != thisI) {
+        closingI = findNextSameElement(parsedTokens, thisI);
+    }
+    return thisI;
+}
+
+void replacer(std::vector<std::unique_ptr<Token>> &parsedTokens,
+              std::string& finalString) {
+    for(auto i = 0; i < (int)parsedTokens.size(); i++) {
+        if( parsedTokens[i]->IsHasClosing() ) {
+
+            auto closingPairI = findNextSameElement(parsedTokens, i);
+            if(closingPairI == i) continue;
+
+        }
+
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -208,7 +248,7 @@ int main(int argc, char *argv[]) {
         concatenator(line, tokens, concatenatedStrings);
 
         for (const auto &t: concatenatedStrings) {
-            auto re = t->Replacement() == "\n" ? "n" : t->Replacement();
+            auto re = t->GetString() == "\n" ? "n" : t->GetString();
             std::cout << re << "\n";
         }
     }
