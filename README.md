@@ -39,11 +39,3 @@ To be able to extend the project, it will need separate design:
   * writes to a file if --out /path/to/html.html were provided (or to ./out.html if no path were provided)
   * writes to stdout if no --out were passed to CLI
   * writes to stderr if error occurred
-# SFDSA
-ASDFA
-sdfasfd
-asdf
-
-afdsadsfasdf
-
-dfdfdfdfdfdfdfdfdfdfddf
